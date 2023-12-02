@@ -2,7 +2,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import numpy as np
@@ -47,7 +47,7 @@ def hyperparameter_tuning(x_train, y_train, algorithm_name):
     param_grid = algorithm['params']
 
     print("Doing grid search for", algorithm_name)
-    grid_search = GridSearchCV(model, param_grid, cv=5, scoring="neg_mean_squared_error", n_jobs=-1)
+    grid_search = RandomizedSearchCV(model, param_grid, n_iter=10, cv=5, scoring="neg_mean_squared_error", n_jobs=-1)
     grid_search.fit(x_train, y_train)
     return grid_search.best_estimator_
 
