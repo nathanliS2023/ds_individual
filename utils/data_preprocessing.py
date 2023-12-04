@@ -32,17 +32,23 @@ def split_data(x, y, test_size=0.20, random_state=42):
     return x_train, x_test, y_train, y_test
 
 
-def undersample_data(df):
-    # Balance the dataset by undersampling the majority class
-    majority_class = df['defects'].value_counts().idxmax()
-    print("Majority class:", majority_class)
-    minority_class_count = df['defects'].value_counts().min()
-    print("Minority class count:", minority_class_count)
-    df_majority_downsampled = df[df['defects'] == majority_class].sample(n=minority_class_count, random_state=42)
-    df_minority = df[df['defects'] != majority_class]
-    df_balanced = (pd.concat([df_majority_downsampled, df_minority]).
-                   sample(frac=1, random_state=42).reset_index(drop=True))
-    return df_balanced
+def balance_data(df, target_column, samples_per_class):
+    # Get counts of each class
+    class_counts = df[target_column].value_counts()
+    minority_class_count = class_counts.min()
+
+    # Adjust desired_samples_per_class if it's greater than the minority class count
+    samples_per_class = min(samples_per_class, minority_class_count)
+
+    # Sample the specified number of instances from each class
+    balanced_df = pd.DataFrame()
+    for class_value in class_counts.index:
+        df_class = df[df[target_column] == class_value].sample(n=samples_per_class, random_state=42)
+        balanced_df = pd.concat([balanced_df, df_class])
+
+    # Shuffle the dataset
+    balanced_df = balanced_df.sample(frac=1, random_state=42).reset_index(drop=True)
+    return balanced_df
 
 
 # load and preprocess data
@@ -51,13 +57,7 @@ def load_and_preprocess_data(file_path):
 
     # remove rows with 0 values in lOCode column
     df = df[df['lOCode'] != 0]
-    df = undersample_data(df)
-
-    num_samples_per_class = 100
-    # Sample a specified number of instances from each class
-    df_class_0 = df[df['defects'] == b'false'].sample(n=num_samples_per_class, random_state=42)
-    df_class_1 = df[df['defects'] == b'true'].sample(n=num_samples_per_class, random_state=42)
-    df = pd.concat([df_class_0, df_class_1]).sample(frac=1, random_state=42).reset_index(drop=True)
+    df = balance_data(df, 'defects', 200)
 
     print(df.shape)
 

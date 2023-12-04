@@ -27,8 +27,8 @@ algorithms = {
     'svm': {
         'model': SVR(),
         'params': {
-            'C': [0.1, 1, 10],
-            'gamma': ['scale', 'auto']
+            'C': [0.01, 0.1, 1, 10],
+            'gamma': ['scale', 'auto'],
         }
     },
     'linear_regression': {
@@ -66,8 +66,6 @@ def evaluate_function(model, x_train, x_test, y_train, y_test, threshold=0.5):
     # Regression metrics
     train_mse = mean_squared_error(y_train, train_predictions)
     test_mse = mean_squared_error(y_test, test_predictions)
-    train_r2 = r2_score(y_train, train_predictions)
-    test_r2 = r2_score(y_test, test_predictions)
 
     # Classification metrics
     train_accuracy = accuracy_score(y_train, binary_train_predictions)
@@ -84,7 +82,6 @@ def evaluate_function(model, x_train, x_test, y_train, y_test, threshold=0.5):
 
     return {
         'train_mse': train_mse, 'test_mse': test_mse,
-        'train_r2': train_r2, 'test_r2': test_r2,
         'train_accuracy': train_accuracy, 'test_accuracy': test_accuracy,
         'train_precision': train_precision, 'test_precision': test_precision,
         'train_recall': train_recall, 'test_recall': test_recall,
