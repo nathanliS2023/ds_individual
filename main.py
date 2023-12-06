@@ -23,7 +23,7 @@ def print_top_n_defect_predictions(model, x_test, n):
         print("Model does not support probability predictions.")
 
 
-def evaluate_models(models, x_train, x_test, y_train, y_test, model_type):
+def analyze_models(models, x_train, x_test, y_train, y_test, model_type):
     scoring = None
     evaluate = None
     if model_type == 'regression':
@@ -72,7 +72,7 @@ def main():
     ]
 
     # Evaluate the models
-    evaluate_models(classification_models, x_train, x_test, y_train, y_test, model_type='classification')
+    analyze_models(regression_models, x_train, x_test, y_train, y_test, model_type='regression')
 
 
 if __name__ == "__main__":
