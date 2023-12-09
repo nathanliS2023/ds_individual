@@ -1,56 +1,47 @@
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix
-from utils import load_and_preprocess_data, evaluate_regression, evaluate_classification, hyperparameter_tuning
+from sklearn.model_selection import RandomizedSearchCV
 
-
-def print_top_n_defect_predictions(model, x_test, n):
-    # Ensure the model has a predict_proba method
-    if hasattr(model, 'predict_proba'):
-        # Get probability estimates
-        proba = model.predict_proba(x_test)
-
-        # Assuming the positive (defect) class is the second column
-        defect_proba = proba[:, 1]
-
-        # Get the indices of the top n predictions
-        top_n_indices = defect_proba.argsort()[-n:][::-1]
-
-        # Print the results
-        print(f"Top {n} samples most likely to have defects:")
-        for index in top_n_indices:
-            print(f"Sample {index} - Probability of defect: {defect_proba[index]}")
-    else:
-        print("Model does not support probability predictions.")
+from utils import load_and_preprocess_data, evaluate_regression, evaluate_classification, hyperparameter_tuning, \
+    plot_model_metrics
+from models import get_nn_model
+from partical_swarm import particle_swarm_optimization
 
 
 def analyze_models(models, x_train, x_test, y_train, y_test, model_type):
-    scoring = None
-    evaluate = None
-    if model_type == 'regression':
-        scoring = "neg_mean_squared_error"
-        evaluate = evaluate_regression
-    elif model_type == 'classification':
-        scoring = "accuracy"
-        evaluate = evaluate_classification
+    scoring = "neg_mean_squared_error" if model_type == 'regression' else "accuracy"
+    evaluate = evaluate_regression if model_type == 'regression' else evaluate_classification
 
-    for model in models:
-        print(f"Processing {model}...")
+    model_metrics = {}
 
-        # Perform hyperparameter tuning
-        best_model = hyperparameter_tuning(x_train, y_train, model, model_type, scoring=scoring)
+    for model_name in models:
+        print(f"Processing {model_name}...")
+
+        # Special handling for neural network
+        if model_name == 'neural_network':
+            model = get_nn_model(input_dim=x_train.shape[1])
+            param_grid = {
+                'batch_size': [10, 20, 50],
+                'epochs': [10, 50, 100],
+                'learning_rate': [0.001, 0.01, 0.1],
+            }
+            grid_search = RandomizedSearchCV(model, param_grid, n_iter=10, cv=5, scoring=scoring, n_jobs=-1)
+            grid_search.fit(x_train, y_train, validation_split=0.2)
+            best_model = grid_search.best_estimator_
+        else:
+            # Perform hyperparameter tuning for other models
+            best_model = hyperparameter_tuning(x_train, y_train, model_name, model_type, scoring=scoring)
 
         # Evaluate the best model
         evaluation_results = evaluate(best_model, x_train, x_test, y_train, y_test)
 
+        model_metrics[model_name] = evaluation_results
+
         # Print evaluation results
-        print(f"Results for {model}:")
+        print(f"Results for {model_name}:")
         for metric, value in evaluation_results.items():
             print(f"{metric}: {value}")
         print("\n")
 
-        # Print top n samples most likely to have defects
-        # print_top_n_defect_predictions(best_model, x_test, 10)
-        # print("\n")
+    plot_model_metrics(model_metrics)
 
 
 def main():
@@ -62,17 +53,31 @@ def main():
         'random_forest_reg',
         'svr',
         'linear_regression',
+        'gradient_boosting_reg',
+        'ridge_regression',
     ]
 
     classification_models = [
         'decision_tree_clf',
         'random_forest_clf',
         'svc',
-        'logistic_regression'
+        'logistic_regression',
+        'naive_bayes',
+        'neural_network',
     ]
 
+    # Perform feature selection
+    num_features = x_train.shape[1]
+    num_particles = 10
+    num_iterations = 20
+    best_feature_subset = particle_swarm_optimization(x_train, y_train, num_features, num_particles, num_iterations)
+    print(best_feature_subset)
+
+    x_train = x_train.iloc[:, best_feature_subset]
+    x_test = x_test.iloc[:, best_feature_subset]
+
     # Evaluate the models
-    analyze_models(regression_models, x_train, x_test, y_train, y_test, model_type='regression')
+    analyze_models(classification_models, x_train, x_test, y_train, y_test, model_type='classification')
 
 
 if __name__ == "__main__":
